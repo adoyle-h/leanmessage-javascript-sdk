@@ -1,0 +1,25 @@
+{
+  "name": "lean-cloud-chat",
+  "version": "1.1.0",
+  "description": "chat",
+  "main": "chat.js",
+  "dependencies": {
+    "bluebird": "^3.1.1",
+    "ws": "^1.0.1",
+    "xmlhttprequest": "^1.8.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adoyle-h/leanmessage-javascript-sdk.git"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/adoyle-h/leanmessage-javascript-sdk/issues"
+  },
+  "homepage": "https://github.com/adoyle-h/leanmessage-javascript-sdk#readme"
+}
