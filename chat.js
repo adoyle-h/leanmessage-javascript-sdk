@@ -88,6 +88,40 @@ function AVChatClient(settings) {
     _settings.watchingPeerIds = settings.watchingPeerIds || [];
     _settings.sp = settings.sp;
     _settings.server = settings.server;
+    if (settings.ws) {
+        // var ws = {
+        //     onopen: function function_name (argument) {
+        //         // body...
+        //     }
+        // };
+        // Object.defineProperties(ws, {
+        //     onopen: {
+        //         get:
+        //         set:
+        //     },
+        //     onclose: {
+        //         get:
+        //         set:
+        //     },
+        //     onmessage: {
+        //         get:
+        //         set:
+        //     },
+        //     close: {
+        //         get:
+        //         set:
+        //     },
+        //     readyState: {
+        //         get:
+        //         set:
+        //     },
+        //     send: {
+        //         get:
+        //         set:
+        //     },
+        // })
+        self.ws = _settings.ws = settings.ws;
+    }
 }
 
 AVChatClient.prototype._getServerInfo = function(appId, secure) {
@@ -118,27 +152,27 @@ AVChatClient.prototype._connect = function() {
         return new Promise(function(resolve, reject) {
             var ws;
 
-            if (_settings.ws) {
-                ws = self.ws = _settings.ws;
+            if (self.ws) {
+                ws = self.ws = self.ws;
                 resolve(server);
             } else {
                 ws = self.ws = new WebSocket(server.server);
                 self._timeout('connectopen', function() {
-                    reject();
+                    reject(new Error('connectopen!!'));
                 });
-                ws.onopen = function() {
+                ws.on('open', function() {
                     if (timers.length > 0) {
                         clearTimeout(timers.shift()[1]);
                     }
                     resolve(server);
-                };
+                });
             }
 
-            ws.onclose = function(e) {
+            ws.on('close', function(e) {
                 self.doClose();
                 _emitter.emit('close', e);
-            };
-            ws.onmessage = function(message) {
+            });
+            ws.on('message', function(message) {
                 var data = JSON.parse(message.data);
 
                 var cmd = data.op ? data.cmd + data.op : data.cmd;
@@ -183,7 +217,7 @@ AVChatClient.prototype._connect = function() {
                         _emitter.emit('left', data);
                     }
                 }
-            };
+            });
         });
     } else {
         return self._getServerInfo(_settings.appId, _settings.secure).then(function(result) {
@@ -220,7 +254,8 @@ AVChatClient.prototype.doClose = function() {
         clearTimeout(v[1]);
     });
     self._waitCommands.forEach(function(v) {
-        v[2]();
+        var reject = v[2];
+        reject(new Error('wtf _waitCommands!!'));
     });
     self.timers = [];
     self._waitCommands = [];
@@ -230,7 +265,7 @@ AVChatClient.prototype._timeout = function(name, reject) {
     var self = this;
     self.timers.push([name, setTimeout(function() {
         if (reject) {
-            reject(name + 'timeout');
+            reject(new Error(name + 'timeout'));
         }
         self.doClose();
     }, 10000)]);
@@ -271,10 +306,10 @@ AVChatClient.prototype.doCommand = function(cmd, op, props) {
         }
     }
     if (!ws) {
-        return Promise.reject();
+        return Promise.reject(new Error('websocket 实例不存在!'));
     }
     if (ws.readyState !== 1) {
-        return Promise.reject(ws.readyState);
+        return Promise.reject(new Error('websocket 未连接上。ws=' + ws.readyState));
     }
     ws.send(JSON.stringify(msg));
     //wait
@@ -295,7 +330,7 @@ AVChatClient.prototype.open = function() {
     var ws = self.ws;
 
     if (ws && ws.readyState === 0) {
-        return Promise.reject(0);
+        return Promise.reject(new Error('WebSocket.CONNECTING'));
     }
     if (ws && ws.readyState === 1) {
         return Promise.resolve();
@@ -309,9 +344,12 @@ AVChatClient.prototype.open = function() {
     });
 };
 AVChatClient.prototype.close = function() {
-    this.doCommand('session', 'close');
-    this.doClose();
-    return Promise.resolve();
+    var client = this;
+    return client.doCommand('session', 'close')
+        .then(function() {
+            return client.doClose();
+        })
+        .return(undefined);
 };
 AVChatClient.prototype.send = function(msg, to, transient) {
     var obj = {
