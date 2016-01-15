@@ -87,39 +87,8 @@ function AVChatClient(settings) {
     _settings.groupAuth = settings.groupAuth || groupAuth;
     _settings.watchingPeerIds = settings.watchingPeerIds || [];
     _settings.sp = settings.sp;
-    _settings.server = settings.server;
+    self.server = _settings.server = settings.server;
     if (settings.ws) {
-        // var ws = {
-        //     onopen: function function_name (argument) {
-        //         // body...
-        //     }
-        // };
-        // Object.defineProperties(ws, {
-        //     onopen: {
-        //         get:
-        //         set:
-        //     },
-        //     onclose: {
-        //         get:
-        //         set:
-        //     },
-        //     onmessage: {
-        //         get:
-        //         set:
-        //     },
-        //     close: {
-        //         get:
-        //         set:
-        //     },
-        //     readyState: {
-        //         get:
-        //         set:
-        //     },
-        //     send: {
-        //         get:
-        //         set:
-        //     },
-        // })
         self.ws = _settings.ws = settings.ws;
     }
 }
@@ -173,7 +142,11 @@ AVChatClient.prototype._connect = function() {
                 _emitter.emit('close', e);
             });
             ws.on('message', function(message) {
-                var data = JSON.parse(message.data);
+                var json = JSON.parse(message);
+                var data = json.data || json;
+                if (!data) {
+                    return console.error('data 不存在!');
+                }
 
                 var cmd = data.op ? data.cmd + data.op : data.cmd;
                 if (!cmd) {
@@ -331,9 +304,6 @@ AVChatClient.prototype.open = function() {
 
     if (ws && ws.readyState === 0) {
         return Promise.reject(new Error('WebSocket.CONNECTING'));
-    }
-    if (ws && ws.readyState === 1) {
-        return Promise.resolve();
     }
     self.timers.forEach(function(v) {
         clearTimeout(v[1]);
